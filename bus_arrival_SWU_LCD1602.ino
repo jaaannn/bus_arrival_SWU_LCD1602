@@ -102,6 +102,14 @@ void get_data_from_SWU(String (&next_departures)[2][3]) {
             i++;
           }
         }
+        // If only one arrival was returned by the API, fill the rest of the array with empty strings.
+        while(i <= 1){
+          String empty = "";
+          next_departures[i][0] = empty;
+          next_departures[i][1] = empty;
+          next_departures[i][2] = empty;
+          i++;
+        }
       }
     } 
     else {
@@ -144,7 +152,6 @@ void print_bus_depature_on_lcd(String next_departures[2][3]){
         lcd.setCursor((16 - time.length()), row);
         lcd.print(time);
       }
-
 }
 
 void loop() {
