@@ -19,7 +19,7 @@ unsigned long timerDelay = 30000;
 
 //SWU API - https://api.swu.de/mobility/
 #define SWU_API_BASE_URL "https://api.swu.de/mobility/v1/stop/passage/Departures"
-#define SWU_API_STOP_NUMBER 1
+#define SWU_API_STOP_NUMBER 9999
 #define SWU_API_STOP_POINT_NUMBER 2
 
 
@@ -45,17 +45,20 @@ void setup() {
   while (WiFiMulti.run() != WL_CONNECTED) { 
     delay(1000);
     Serial.println("Connecting...");
+    lcd.clear();
+    lcd.print("Connecting...");
   }
   Serial.println("Connection established!");  
   Serial.print("IP address:\t");
   Serial.println(WiFi.localIP());  
+  lcd.clear();
   lcd.print("Connected! IP:");
   lcd.setCursor(0, 1);
   lcd.print(WiFi.localIP());
 }
 
 // Returns the next two stops for the defined bus stop
-void get_data_from_SWU(char (&next_departures)[2][3][50]) {
+void get_data_from_SWU(String (&next_departures)[2][3]) {
 
   std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
   client->setInsecure();
@@ -91,9 +94,10 @@ void get_data_from_SWU(char (&next_departures)[2][3][50]) {
             String DepartureDirectionText = item["DepartureDirectionText"];
             short DepartureCountdown = item["DepartureCountdown"];
             String DepartureCountdownInMin = String(DepartureCountdown/60);
-            strcpy(next_departures[i][0], RouteName.c_str());
-            strcpy(next_departures[i][1], DepartureDirectionText.c_str());
-            strcpy(next_departures[i][2], DepartureCountdownInMin.c_str());
+            
+            next_departures[i][0] = RouteName;
+            next_departures[i][1] = DepartureDirectionText;
+            next_departures[i][2] = DepartureCountdownInMin;
 
             i++;
           }
@@ -119,29 +123,36 @@ void get_data_from_SWU(char (&next_departures)[2][3][50]) {
   }
 }
 
-void print_bus_depature_on_lcd(const char* lineNumber, const char* destination, const char* time, int row){
-      lcd.setCursor((2-strlen(lineNumber)), row);
-      lcd.print(lineNumber);
-      lcd.setCursor(3, row);
-      if(strlen(destination) >= 10){
-        lcd.print(String(destination).substring(0,9));
-        lcd.print(".");
+void print_bus_depature_on_lcd(String next_departures[2][3]){
+      lcd.clear();
+      for(int row = 0; row<=1; row++){
+        String lineNumber = next_departures[row][0];
+        String destination = next_departures[row][1];
+        String time = next_departures[row][2];
+
+        lcd.setCursor((2-lineNumber.length()), row);
+        lcd.print(lineNumber);
+        lcd.setCursor(3, row);
+        if(destination.length() >= 10){
+          lcd.print(String(destination).substring(0,9));
+          lcd.print(".");
+        }
+        else{
+          lcd.print(destination);
+        }
+        
+        lcd.setCursor((16 - time.length()), row);
+        lcd.print(time);
       }
-      else{
-        lcd.print(destination);
-      }
-      lcd.setCursor((16 - strlen(time)), row);
-      lcd.print(time);
+
 }
 
 void loop() {
   if ((millis() - lastTime) > timerDelay){
     if(WiFi.status()== WL_CONNECTED){
-      char next_departures[2][3][50];
+      String next_departures[2][3];
       get_data_from_SWU(next_departures);
-      lcd.clear();
-      print_bus_depature_on_lcd(next_departures[0][0],next_departures[0][1],next_departures[0][2],0);
-      print_bus_depature_on_lcd(next_departures[1][0],next_departures[1][1],next_departures[1][2],1);
+      print_bus_depature_on_lcd(next_departures);
     } 
     else{
       Serial.println("WiFi Disconnected!");
