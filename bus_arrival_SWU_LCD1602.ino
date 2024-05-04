@@ -142,7 +142,7 @@ void print_bus_depature_on_lcd(String next_departures[2][3]){
         lcd.print(lineNumber);
         lcd.setCursor(3, row);
         if(destination.length() >= 10){
-          lcd.print(String(destination).substring(0,9));
+          lcd.print(destination.substring(0,9));
           lcd.print(".");
         }
         else{
