@@ -106,7 +106,7 @@ int get_data_from_SWU(String (&next_departures)[2][3]) {
             i++;
           }
         }
-        // If only one arrival was returned by the API, fill the rest of the array with empty strings.
+        // If less then 2 arrivals where returned by the API, fill the rest of the array with empty strings.
         while(i <= 1){
           String empty = "";
           next_departures[i][0] = empty;
@@ -115,15 +115,12 @@ int get_data_from_SWU(String (&next_departures)[2][3]) {
           i++;
         }
       }
-      https.end();
-      return httpCode;
     } 
     else {
       Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-
-      https.end();
-      return httpCode;
     }
+    https.end();
+    return httpCode;
   } 
   else {
     Serial.printf("[HTTPS] Unable to connect\n");
