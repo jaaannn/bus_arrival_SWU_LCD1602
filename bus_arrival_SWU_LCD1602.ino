@@ -10,7 +10,6 @@
 #include <LiquidCrystal.h>
 
 // Timing in milliseconds
-unsigned long lastTime = 0;
 unsigned long timerDelay = 30000;
 
 // Wifi Config
@@ -20,7 +19,7 @@ unsigned long timerDelay = 30000;
 //SWU API - https://api.swu.de/mobility/
 #define SWU_API_BASE_URL "https://api.swu.de/mobility/v1/stop/passage/Departures"
 #define SWU_API_STOP_NUMBER 9999
-#define SWU_API_STOP_POINT_NUMBER 2
+#define SWU_API_STOP_POINT_NUMBER 1
 
 
 //LCD
@@ -41,6 +40,7 @@ void setup() {
 
   WiFiMulti.addAP(STASSID, STAPSK);
   Serial.println("Connecting to ssid '" STASSID "'");
+
   // Wait for the Wi-Fi to connect
   while (WiFiMulti.run() != WL_CONNECTED) { 
     delay(1000);
@@ -48,17 +48,21 @@ void setup() {
     lcd.clear();
     lcd.print("Connecting...");
   }
+
   Serial.println("Connection established!");  
   Serial.print("IP address:\t");
   Serial.println(WiFi.localIP());  
+  
   lcd.clear();
   lcd.print("Connected! IP:");
   lcd.setCursor(0, 1);
   lcd.print(WiFi.localIP());
+  delay(5000);
 }
 
-// Returns the next two stops for the defined bus stop
-void get_data_from_SWU(String (&next_departures)[2][3]) {
+// Copies the next two departures for the given stop into the passed next_departures[2][3].
+// Returns 0 on success and 1 on error 
+int get_data_from_SWU(String (&next_departures)[2][3]) {
 
   std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
   client->setInsecure();
@@ -107,27 +111,24 @@ void get_data_from_SWU(String (&next_departures)[2][3]) {
           String empty = "";
           next_departures[i][0] = empty;
           next_departures[i][1] = empty;
-          next_departures[i][2] = empty;
+          next_departures[i][2] = empty;         
           i++;
         }
       }
+      https.end();
+      return 0;
     } 
     else {
       Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("GET... failed, error:");
-      lcd.setCursor(0,1);
-      lcd.print(https.errorToString(httpCode).c_str());
+
+      https.end();
+      return 1;
     }
-      
-  https.end();
   } 
   else {
     Serial.printf("[HTTPS] Unable to connect\n");
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("[HTTPS] Unable to connect");
+
+    return 1;
   }
 }
 
@@ -155,18 +156,22 @@ void print_bus_depature_on_lcd(String next_departures[2][3]){
 }
 
 void loop() {
-  if ((millis() - lastTime) > timerDelay){
-    if(WiFi.status()== WL_CONNECTED){
-      String next_departures[2][3];
-      get_data_from_SWU(next_departures);
+  if(WiFi.status()== WL_CONNECTED){
+    String next_departures[2][3];
+    if(get_data_from_SWU(next_departures) == 0){
       print_bus_depature_on_lcd(next_departures);
-    } 
+    }
     else{
-      Serial.println("WiFi Disconnected!");
       lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print("WiFi Disconnected!");
+      lcd.print("GET... failed");
     }
-  lastTime = millis();
+  } 
+  else{
+    Serial.println("WiFi Disconnected!");
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("WiFi Disconnected!");
   }
+  delay(timerDelay);
 }
