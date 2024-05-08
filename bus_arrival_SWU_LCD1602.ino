@@ -83,7 +83,7 @@ int get_data_from_SWU(String (&next_departures)[2][3]) {
       // HTTP header has been send and Server response header has been handled
       Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
       // file found at server
-      if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+      if (httpCode == HTTP_CODE_OK) {
         String payload = https.getString();
 
         // Handle Json payload and return next 2 Stops for Direction B
@@ -116,19 +116,19 @@ int get_data_from_SWU(String (&next_departures)[2][3]) {
         }
       }
       https.end();
-      return 0;
+      return httpCode;
     } 
     else {
       Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
 
       https.end();
-      return 1;
+      return httpCode;
     }
   } 
   else {
     Serial.printf("[HTTPS] Unable to connect\n");
 
-    return 1;
+    return 9999;
   }
 }
 
@@ -158,13 +158,16 @@ void print_bus_depature_on_lcd(String next_departures[2][3]){
 void loop() {
   if(WiFi.status()== WL_CONNECTED){
     String next_departures[2][3];
-    if(get_data_from_SWU(next_departures) == 0){
+    int http_code = get_data_from_SWU(next_departures);
+    if(http_code == 200){
       print_bus_depature_on_lcd(next_departures);
     }
     else{
       lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print("GET... failed");
+      lcd.print("HTTP-GET failed");
+      lcd.setCursor(0,1);
+      lcd.print("Error: " + String(http_code));
     }
   } 
   else{
