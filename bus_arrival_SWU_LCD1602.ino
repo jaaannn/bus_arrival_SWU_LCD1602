@@ -61,7 +61,7 @@ void setup() {
 }
 
 // Copies the next two departures for the given stop into the passed next_departures[2][3].
-// Returns 0 on success and 1 on error 
+// Returns http response code
 int get_data_from_SWU(String (&next_departures)[2][3]) {
 
   std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
@@ -78,42 +78,38 @@ int get_data_from_SWU(String (&next_departures)[2][3]) {
     // start connection and send HTTP header
     int httpCode = https.GET();
 
-    // httpCode will be negative on error
-    if (httpCode > 0) {
+    if (httpCode == HTTP_CODE_OK) {
       // HTTP header has been send and Server response header has been handled
       Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
       // file found at server
-      if (httpCode == HTTP_CODE_OK) {
-        String payload = https.getString();
+      String payload = https.getString();
 
-        // Handle Json payload and return next 2 Stops for Direction B
-        DynamicJsonDocument doc(2048);
-        deserializeJson(doc, payload);
-        JsonArray data = doc["StopPassage"]["DepartureData"];
+      // Handle Json payload and return next 2 Stops
+      DynamicJsonDocument doc(2048);
+      deserializeJson(doc, payload);
+      JsonArray data = doc["StopPassage"]["DepartureData"];
 
-        int i = 0;
-        for (JsonVariant item : data) {
-          if(item["StopPointNumber"] == SWU_API_STOP_POINT_NUMBER && i <= 1){ 
-            String RouteName = item["RouteName"];
-            String DepartureDirectionText = item["DepartureDirectionText"];
-            short DepartureCountdown = item["DepartureCountdown"];
-            String DepartureCountdownInMin = String(DepartureCountdown/60);
-            
-            next_departures[i][0] = RouteName;
-            next_departures[i][1] = DepartureDirectionText;
-            next_departures[i][2] = DepartureCountdownInMin;
+      int i = 0;
+      for (JsonVariant item : data) {
+        if(item["StopPointNumber"] == SWU_API_STOP_POINT_NUMBER && i <= 1){ 
+          String RouteName = item["RouteName"];
+          String DepartureDirectionText = item["DepartureDirectionText"];
+          short DepartureCountdown = item["DepartureCountdown"];
+          String DepartureCountdownInMin = String(DepartureCountdown/60);
+          
+          next_departures[i][0] = RouteName;
+          next_departures[i][1] = DepartureDirectionText;
+          next_departures[i][2] = DepartureCountdownInMin;
 
-            i++;
-          }
-        }
-        // If less then 2 arrivals where returned by the API, fill the rest of the array with empty strings.
-        while(i <= 1){
-          String empty = "";
-          next_departures[i][0] = empty;
-          next_departures[i][1] = empty;
-          next_departures[i][2] = empty;         
           i++;
         }
+      }
+      // If less then 2 arrivals where returned by the API, fill the rest of the array with empty strings.
+      while(i <= 1){
+        next_departures[i][0] = "";
+        next_departures[i][1] = "";
+        next_departures[i][2] = "";         
+        i++;
       }
     } 
     else {
