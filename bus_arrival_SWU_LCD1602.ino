@@ -148,26 +148,36 @@ void print_bus_depature_on_lcd(String next_departures[2][3]){
       }
 }
 
+void print_http_error(int http_code){
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("HTTP-GET failed");
+    lcd.setCursor(0,1);
+    String error_message = "Error: " + String(http_code);
+    lcd.print(error_message);
+}
+
+void print_wifi_disconnect(){
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("No WiFi!");
+    lcd.setCursor(0,1);
+    lcd.print("Please Restart");
+}
+
 void loop() {
   if(WiFi.status()== WL_CONNECTED){
     String next_departures[2][3];
     int http_code = get_data_from_SWU(next_departures);
-    if(http_code == 200){
+    if(http_code == HTTP_CODE_OK){
       print_bus_depature_on_lcd(next_departures);
     }
     else{
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("HTTP-GET failed");
-      lcd.setCursor(0,1);
-      lcd.print("Error: " + String(http_code));
+      print_http_error(http_code);
     }
   } 
   else{
-    Serial.println("WiFi Disconnected!");
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("WiFi Disconnected!");
+    print_wifi_disconnect();
   }
   delay(timerDelay);
 }
