@@ -104,13 +104,6 @@ int get_data_from_SWU(String (&next_departures)[2][3]) {
           i++;
         }
       }
-      // If less then 2 arrivals where returned by the API, fill the rest of the array with empty strings.
-      while(i <= 1){
-        next_departures[i][0] = "";
-        next_departures[i][1] = "";
-        next_departures[i][2] = "";         
-        i++;
-      }
     } 
     else {
       Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
@@ -167,7 +160,10 @@ void print_wifi_disconnect(){
 
 void loop() {
   if(WiFi.status()== WL_CONNECTED){
-    String next_departures[2][3];
+    String next_departures[2][3] = {
+      {"", "", ""},
+      {"", "", ""}
+    };
     int http_code = get_data_from_SWU(next_departures);
     if(http_code == HTTP_CODE_OK){
       print_bus_depature_on_lcd(next_departures);
