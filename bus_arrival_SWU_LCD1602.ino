@@ -85,22 +85,22 @@ int get_data_from_SWU(String (&next_departures)[2][3]) {
       String payload = https.getString();
 
       // Handle Json payload and return next 2 Stops
-      DynamicJsonDocument doc(2048);
-      deserializeJson(doc, payload);
+      DynamicJsonDocument doc(4096);
+      DeserializationError error = deserializeJson(doc, payload);
+      if (error) {
+        Serial.print("JSON deserialization failed: ");
+        Serial.println(error.c_str());
+        return -1;
+      }
+
       JsonArray data = doc["StopPassage"]["DepartureData"];
 
       int i = 0;
       for (JsonVariant item : data) {
         if(item["StopPointNumber"] == SWU_API_STOP_POINT_NUMBER && i <= 1){ 
-          String RouteName = item["RouteName"];
-          String DepartureDirectionText = item["DepartureDirectionText"];
-          short DepartureCountdown = item["DepartureCountdown"];
-          String DepartureCountdownInMin = String(DepartureCountdown/60);
-          
-          next_departures[i][0] = RouteName;
-          next_departures[i][1] = DepartureDirectionText;
-          next_departures[i][2] = DepartureCountdownInMin;
-
+          next_departures[i][0] = item["RouteName"].as<String>();
+          next_departures[i][1] = item["DepartureDirectionText"].as<String>();
+          next_departures[i][2] = String(item["DepartureCountdown"].as<short>() / 60);
           i++;
         }
       }
@@ -114,7 +114,7 @@ int get_data_from_SWU(String (&next_departures)[2][3]) {
   else {
     Serial.printf("[HTTPS] Unable to connect\n");
 
-    return 9999;
+    return -2;
   }
 }
 
